@@ -1,7 +1,7 @@
 
 # docker-workshop
 
->Dự án mẫu về pipeline xử lý dữ liệu sử dụng Docker, PostgreSQL, Pandas, SQLAlchemy và các công cụ hiện đại. Mục tiêu là giúp bạn dễ dàng dựng lại môi trường, ingest dữ liệu, và phát triển các pipeline ETL.
+>Dự án học tập về pipeline xử lý dữ liệu sử dụng Docker, PostgreSQL, Pandas, SQLAlchemy và các công cụ hiện đại. Mục tiêu là dựng lại môi trường, ingest dữ liệu, và phát triển các pipeline ETL.
 
 ## Cấu trúc thư mục
 
