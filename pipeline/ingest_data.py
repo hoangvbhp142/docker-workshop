@@ -2,7 +2,48 @@ import click
 import pandas as pd
 from sqlalchemy import create_engine
 from tqdm.auto import tqdm
-from config_data import DATASET_CONFIG as DATASET
+
+DATASET_CONFIG = {
+    "yellow_taxi_data": {
+        "url": "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_{year}-{month:02d}.csv.gz",  
+        "dtype": {
+            "VendorID": "Int64",
+            "passenger_count": "Int64",
+            "trip_distance": "float64",
+            "RatecodeID": "Int64",
+            "store_and_fwd_flag": "string",
+            "PULocationID": "Int64",
+            "DOLocationID": "Int64",
+            "payment_type": "Int64",
+            "fare_amount": "float64",
+            "extra": "float64",
+            "mta_tax": "float64",
+            "tip_amount": "float64",
+            "tolls_amount": "float64",
+            "improvement_surcharge": "float64",
+            "total_amount": "float64",
+            "congestion_surcharge": "float64"
+        },
+        "parse_dates":[
+            "tpep_pickup_datetime",
+            "tpep_dropoff_datetime"
+        ],
+        "chunksize": 100000,
+        "table_name": "yellow_taxi_data"
+    },
+    "zones": {
+        "url": "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/misc/taxi_zone_lookup.csv",
+        "dtype": {
+            "LocationID": "Int64",
+            "Borough": "string",
+            "Zone": "string",
+            "service_zone": "string"
+        },
+        "parse_dates": None,
+        "chunksize": None,
+        "table_name": "zones"
+    }
+}
 
 @click.command()
 @click.option('--year', default=2021, type=int, help='Year to ingest')
@@ -15,7 +56,7 @@ from config_data import DATASET_CONFIG as DATASET
 def run(year, month, pg_user, pg_password, pg_db, pg_host, pg_port):    
     engine = create_engine(f'postgresql+psycopg://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_db}')
 
-    for dataset_name, dataset_config in DATASET.items():
+    for dataset_name, dataset_config in DATASET_CONFIG.items():
         if dataset_name == "yellow_taxi_data":
             url = dataset_config["url"].format(year=year, month=month)
         else:
