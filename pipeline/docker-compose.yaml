@@ -1,24 +1,88 @@
 services:
   pgdatabase:
     image: postgres:18
+    container_name: ny_taxi_postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: "root"
-      POSTGRES_PASSWORD: "root"
-      POSTGRES_DB: "ny_taxi"
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: ny_taxi
     volumes:
-      - "ny_taxi_postgres_data:/var/lib/postgresql"
+      - ny_taxi_postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
 
   pgadmin:
     image: dpage/pgadmin4
+    container_name: ny_taxi_pgadmin
+    restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: "admin@admin.com"
-      PGADMIN_DEFAULT_PASSWORD: "root"
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
     volumes:
-      - "pgadmin_data:/var/lib/pgadmin"
+      - pgadmin_data:/var/lib/pgadmin
     ports:
       - "8085:80"
+    depends_on:
+      - pgdatabase
+
+  kestra_postgres:
+    image: postgres:18
+    container_name: kestra_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kestra
+      POSTGRES_USER: kestra
+      POSTGRES_PASSWORD: k3str4
+    volumes:
+      - kestra_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  kestra:
+    image: kestra/kestra:v1.1
+    container_name: kestra_app
+    restart: unless-stopped
+    user: "root"
+    command: server standalone
+    volumes:
+      - kestra_data:/app/storage
+      - /var/run/docker.sock:/var/run/docker.sock
+      - kestra_tmp:/tmp/kestra-wd
+    environment:
+      KESTRA_CONFIGURATION: |
+        datasources:
+          postgres:
+            url: jdbc:postgresql://kestra_postgres:5432/kestra
+            driverClassName: org.postgresql.Driver
+            username: kestra
+            password: k3str4
+        kestra:
+          server:
+            basicAuth:
+              username: "admin@kestra.io"
+              password: Admin1234!
+          repository:
+            type: postgres
+          storage:
+            type: local
+            local:
+              basePath: "/app/storage"
+          queue:
+            type: postgres
+          tasks:
+            tmpDir:
+              path: /tmp/kestra-wd/tmp
+          url: http://localhost:8080/
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    depends_on:
+      kestra_postgres:
+        condition: service_started
 
   ingest_data:
     build: .
@@ -28,3 +92,6 @@ services:
 volumes:
   ny_taxi_postgres_data:
   pgadmin_data:
+  kestra_postgres_data:
+  kestra_data:
+  kestra_tmp:
