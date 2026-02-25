@@ -225,10 +225,73 @@ LIMIT 1;
 -- ==============================
 
 -- 16. Tìm top 3 pickup zones có nhiều chuyến nhất trong mỗi borough.
-
--- 17. Tìm top 3 tuyến đường có doanh thu cao nhất trong mỗi tháng.
+SELECT *
+FROM (
+	SELECT
+		pu."Zone" AS zones,
+		pu."Borough" AS borough,
+		COUNT(*) AS total_trips_in_borough,
+		ROW_NUMBER() OVER(
+			PARTITION BY pu."Borough"
+			ORDER BY COUNT(*) DESC
+		) AS rn
+	FROM
+		yellow_taxi_data ytd
+	JOIN zones pu
+		ON pu."LocationID" = ytd."PULocationID"
+	GROUP BY pu."Borough", pu."Zone"
+)
+WHERE rn < 4;
+	
+-- 17. Tìm top 3 tuyến đường có doanh thu cao nhất trong ngày.
+WITH revenue_by_route AS (
+	SELECT
+		DATE("tpep_pickup_datetime") AS date_time,
+		"PULocationID",
+		"DOLocationID",
+		SUM("total_amount") AS total_amount
+	FROM yellow_taxi_data
+	GROUP BY date_time, "PULocationID", "DOLocationID"
+	ORDER BY date_time ASC
+)
+SELECT *
+FROM (
+	SELECT
+		date_time,
+		CONCAT(pu."Zone", '/', pu."Borough") AS pickup_location,
+		CONCAT(dof."Zone", '/', dof."Borough") AS dropoff_location,
+		total_amount,
+		DENSE_RANK() OVER(
+			PARTITION BY date_time
+			ORDER BY total_amount DESC
+		) AS rn
+	FROM revenue_by_route
+	JOIN zones pu ON pu."LocationID" = revenue_by_route."PULocationID"
+	JOIN zones dof ON dof."LocationID" = revenue_by_route."DOLocationID"
+) t
+WHERE t.rn < 4;
 
 -- 18. Xếp hạng (rank) các zone theo tổng doanh thu.
+WITH zone_revenue AS (
+	SELECT
+		"PULocationID",
+		SUM("total_amount") AS total_amount
+	FROM yellow_taxi_data
+	WHERE "total_amount" > 0 AND "trip_distance" > 0
+	GROUP BY "PULocationID"
+)
+SELECT *
+FROM (
+	SELECT
+		pu_loc."Zone",
+		zr."total_amount",
+		DENSE_RANK() OVER(
+			ORDER BY zr."total_amount" DESC
+		) AS rn
+	FROM
+		zone_revenue zr
+	JOIN zones pu_loc ON pu_loc."LocationID" = zr."PULocationID"
+);
 
 -- 19. Tính phần trăm đóng góp doanh thu của mỗi borough trên tổng doanh thu.
 

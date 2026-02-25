@@ -90,4 +90,7 @@ python script.py
 - Dữ liệu sẽ được ingest vào các bảng trong PostgreSQL (xem logs ingest_data.py).
 
 ---
-*Mọi thắc mắc hoặc đóng góp, vui lòng tạo issue hoặc PR.*
+
+sudo pkill dockerd
+sudo pkill containerd
+sudo dockerd > /tmp/dockerd.log 2>&1 &
